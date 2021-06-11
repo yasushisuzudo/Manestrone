@@ -7,7 +7,7 @@ Apogee Quartet, an old but excellent USB Audio Interface.
 Unfortunately, I could not manage to control internal mixer enough, but for inputs, outpus
 and routing, I am satisfied what I have done.
 
-If you want to use this program, you will need to add a rules file in /etc/udev/rules.d/
+If you want to use this program as a non-root user, you will need to add a rules file in /etc/udev/rules.d/
 which contains following rule.
 
 SUBSYSTEM=="usb", ATTRS{idVendor}=="0c60", ATTRS{idProduct}=="0014", GROUP="plugdev", TAG+="uaccess"
