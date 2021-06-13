@@ -178,18 +178,18 @@ class mixerWindow(wx.Frame):
             vbox.Add(mtitle, flag=wx.EXPAND |  wx.TOP | wx.LEFT | wx.RIGHT, border=borderValue)
             vbox.Add(mp, flag=wx.EXPAND)
 
+            softRtnPanel = stripPanel(mp, apogeeinfo, dev, mixerindex,                   # soft return panel follows
+                                      channel = apogeeinfo["mixerChannel_Other"][0][1],
+                                      title = apogeeinfo["mixerChannel_Other"][0][0], grandpa = self) # software return source
+            self.splist.append(softRtnPanel)
+            hbox.Add(softRtnPanel, flag=wx.EXPAND |  wx.BOTTOM | wx.LEFT | wx.RIGHT, border=borderValue)
+
             channel = 0
             while (channel < apogeeinfo["mixerChannel_Num"]):                  # strips are produced per channel
                 sp = stripPanel(mp, apogeeinfo, dev, mixerindex, channel, grandpa = self) # a strip(panel)
                 hbox.Add(sp, flag=wx.EXPAND |  wx.BOTTOM | wx.LEFT | wx.RIGHT, border=borderValue)
                 self.splist.append(sp)                                           # sp added to splist
                 channel  = channel + 1
-
-            softRtnPanel = stripPanel(mp, apogeeinfo, dev, mixerindex,                   # soft return panel follows
-                                      channel = apogeeinfo["mixerChannel_Other"][0][1],
-                                      title = apogeeinfo["mixerChannel_Other"][0][0], grandpa = self) # software return source
-            self.splist.append(softRtnPanel)
-            hbox.Add(softRtnPanel, flag=wx.EXPAND |  wx.BOTTOM | wx.LEFT | wx.RIGHT, border=borderValue)
 
             masterPanel = stripPanel(mp, apogeeinfo, dev, mixerindex,
                                      channel = apogeeinfo["mixerChannel_Other"][1][1],
