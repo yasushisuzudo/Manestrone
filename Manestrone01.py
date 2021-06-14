@@ -25,12 +25,6 @@ mixerWindowSize = (1140,540)
 mainWindowSize = (450,160)
 updateInterval = 0.2 # interval for periodic information update of the device
 
-def get_dev_value(self, device, request, wValue = 0, wIndex = 0):
-    return device.ctrl_transfer(0xc0, self.apogeeinfo[request], wValue, wIndex, 1)[0]
-
-def set_dev_value(self, device, request, wValue = 0, wIndex = 0, msg = None):
-    device.ctrl_transfer(0x40, self.apogeeinfo[request], wValue, wIndex, [msg])
-
 class stripPanel(wx.Panel):
 
     def __init__(self, parent, apogeeinfo = None, dev = None, mixerindex = None, channel = None, title = None, grandpa = None):
@@ -74,23 +68,16 @@ class stripPanel(wx.Panel):
         self.Solo = wx.ToggleButton(self, wx.Window.NewControlId(), label='Solo')
         self.Mute = wx.ToggleButton(self, wx.Window.NewControlId(), label='Mute')
 
-        # adding parts to the "box" (vertical boxsizer)
-        lst = [self.Title,
-               None,
-               self.LevelTitle,
-               self.Level,
-               None,
-               self.secondTitle,
-               self.Source,
-               self.Pan,
-               self.Solo,
-               self.Mute]
-
-        for each in lst:
-            if each == None:
-                box.AddSpacer(borderValue)
-            else:
-                box.Add(each, flag=wx.EXPAND)
+        box.Add(self.Title, flag=wx.EXPAND)
+        box.AddSpacer(borderValue)
+        box.Add(self.LevelTitle, flag=wx.EXPAND)
+        box.Add(self.Level, flag=wx.EXPAND)
+        box.AddSpacer(borderValue)
+        box.Add(self.secondTitle, flag=wx.EXPAND)
+        box.Add(self.Source, flag=wx.EXPAND)
+        box.Add(self.Pan, flag=wx.EXPAND)
+        box.Add(self.Solo, flag=wx.EXPAND)
+        box.Add(self.Mute, flag=wx.EXPAND)
 
         if (debug == False):
             self.Level.Bind(wx.EVT_SPINCTRL, self.on_mixer_level_changed)
@@ -117,11 +104,11 @@ class stripPanel(wx.Panel):
             self.solo = 0
             self.mute = 0
         else:
-            self.source = get_dev_value(dev, "mixerSoftRtn_Request", 0, self.mixerindex)
-            self.level = get_dev_value(dev, "mixerLevel_Request", self.mixerindex, self.index)
-            self.pan = get_dev_value(dev, "mixerPan_Request", self.mixerindex, self.index)
-            self.solo = get_dev_value(dev, "mixerSolo_Request", self.mixerindex, self.index)
-            self.mute = get_dev_value(dev, "mixerMute_Request", self.mixerindex, self.index)
+            self.source = dev.ctrl_transfer(0xc0, self.apogeeinfo["mixerSoftRtn_Request"], 0, self.mixerindex, 1)[0]
+            self.level = dev.ctrl_transfer(0xc0, self.apogeeinfo["mixerLevel_Request"], self.mixerindex, self.index, 1)[0]
+            self.pan = dev.ctrl_transfer(0xc0, self.apogeeinfo["mixerPan_Request"], self.mixerindex, self.index, 1)[0]
+            self.solo = dev.ctrl_transfer(0xc0, self.apogeeinfo["mixerSolo_Request"], self.mixerindex, self.index, 1)[0]
+            self.mute = dev.ctrl_transfer(0xc0, self.apogeeinfo["mixerMute_Request"], self.mixerindex, self.index, 1)[0]
 
         if (self.title == "Software Return"):
             self.Pan.Hide()
@@ -146,25 +133,24 @@ class stripPanel(wx.Panel):
             self.Solo.SetValue(self.solo)
             self.Mute.SetValue(self.mute)
 
-
     def on_source_changed(self, event):
-        set_dev_value(self.dev, "mixerSoftRtn_Request", 0, self.mixerindex,  event.GetSelection())
+        self.dev.ctrl_transfer(0x40, self.apogeeinfo["mixerSoftRtn_Request"], 0, self.mixerindex,  [event.GetSelection()])
         self.grandpa.update()
 
     def on_mixer_level_changed(self, event):
-        set_dev_value(self.dev, "mixerLevel_Request", self.mixerindex, self.index, event.GetPosition() - self.apogeeinfo["mixerLevel_Min"]) # + 48
+        self.dev.ctrl_transfer(0x40, self.apogeeinfo["mixerLevel_Request"], self.mixerindex, self.index, [event.GetPosition() - self.apogeeinfo["mixerLevel_Min"]]) # + 48
         self.grandpa.update()
 
     def on_mixer_pan_changed(self, event):
-        set_dev_value(self.dev, "mixerPan_Request", self.mixerindex, self.index, event.GetPosition() - self.apogeeinfo["mixerPan_Min"]) # + 64
+        self.dev.ctrl_transfer(0x40, self.apogeeinfo["mixerPan_Request"], self.mixerindex, self.index, [event.GetPosition() - self.apogeeinfo["mixerPan_Min"]]) # + 64
         self.grandpa.update()
 
     def on_solo_toggled(self, event):
-        set_dev_value(self.dev, "mixerSolo_Request", self.mixerindex, self.index, event.GetInt())
+        self.dev.ctrl_transfer(0x40, self.apogeeinfo["mixerSolo_Request"], self.mixerindex, self.index, [event.GetInt()])
         self.grandpa.update()
 
     def on_mute_toggled(self, event):
-        set_dev_value(self.dev, "mixerMute_Request", self.mixerindex, self.index, event.GetInt())
+        self.dev.ctrl_transfer(0x40, self.apogeeinfo["mixerMute_Request"], self.mixerindex, self.index, [event.GetInt()])
         self.grandpa.update()
 
 
@@ -260,22 +246,14 @@ class inputPanel(wx.Panel):
         self.Phantom = wx.ToggleButton(self, wx.Window.NewControlId(), label='48V')
         self.Group = wx.Choice(self, wx.Window.NewControlId(),choices=apogeeinfo["inputGroupChoice"])
 
-        # adding parts to the "box" (vertical boxsizer)
-
-        lst = [self.Title,
-               self.Type,
-               self.MicLevel,
-               self.InstLevel,
-               self.SoftLimit,
-               self.Phase,
-               self.Phantom,
-               self.Group]
-
-        for each in lst:
-            if each == None:
-                box.AddSpacer(borderValue)
-            else:
-                box.Add(each, flag=wx.EXPAND)
+        box.Add(self.Title, flag=wx.EXPAND)
+        box.Add(self.Type, flag=wx.EXPAND)
+        box.Add(self.MicLevel, flag=wx.EXPAND)
+        box.Add(self.InstLevel, flag=wx.EXPAND)
+        box.Add(self.SoftLimit, flag=wx.EXPAND)
+        box.Add(self.Phase, flag=wx.EXPAND)
+        box.Add(self.Phantom, flag=wx.EXPAND)
+        box.Add(self.Group, flag=wx.EXPAND)
 
         if (debug == False):
             self.Type.Bind(wx.EVT_CHOICE, self.on_input_type_changed)
@@ -299,12 +277,12 @@ class inputPanel(wx.Panel):
             self.instlevel = 0
             self.group = 0
         else:
-            self.itype = get_dev_value(dev, "inputType_Request", 0, self.index)
-            self.softlimit = get_dev_value(dev, "softLimit_Request", 0, self.index)
-            self.phantom = get_dev_value(dev, "phantom_Request", 0, self.index)
-            self.miclevel = get_dev_value(dev, "micLevel_Request", 0, self.index)
-            self.instlevel = get_dev_value(dev, "instLevel_Request", 0, self.index)
-            self.group = get_dev_value(dev, "inputGroup_Request", 0, self.index)
+            self.itype = dev.ctrl_transfer(0xc0, self.apogeeinfo["inputType_Request"], 0, self.index, 1)[0]
+            self.softlimit = dev.ctrl_transfer(0xc0, self.apogeeinfo["softLimit_Request"], 0, self.index, 1)[0]
+            self.phantom = dev.ctrl_transfer(0xc0, self.apogeeinfo["phantom_Request"], 0, self.index, 1)[0]
+            self.miclevel = dev.ctrl_transfer(0xc0, self.apogeeinfo["micLevel_Request"], 0, self.index, 1)[0]
+            self.instlevel = dev.ctrl_transfer(0xc0, self.apogeeinfo["instLevel_Request"], 0, self.index, 1)[0]
+            self.group = dev.ctrl_transfer(0xc0, self.apogeeinfo["inputGroup_Request"], 0, self.index, 1)[0]
 
     def update(self):
         self.get_input_info()
@@ -330,12 +308,12 @@ class inputPanel(wx.Panel):
             self.Phantom.Disable()
         
     def on_input_level_changed(self, event):
-        set_dev_value(self.dev, "instLevel_Request", 0, self.index, event.GetPosition())
-        set_dev_value(self.dev, "micLevel_Request", 0, self.index, event.GetPosition())
+        self.dev.ctrl_transfer(0x40, self.apogeeinfo["instLevel_Request"], 0, self.index, [event.GetPosition()])
+        self.dev.ctrl_transfer(0x40, self.apogeeinfo["micLevel_Request"], 0, self.index, [event.GetPosition()])
         self.parent.update()
 
     def on_input_type_changed(self, event):
-        set_dev_value(self.dev, "inputType_Request", 0, self.index, event.GetSelection())
+        self.dev.ctrl_transfer(0x40, self.apogeeinfo["inputType_Request"], 0, self.index, [event.GetSelection()])
 
         self.get_input_info()
         if self.apogeeinfo["inputType"][self.itype] != "Microphone":
@@ -347,19 +325,19 @@ class inputPanel(wx.Panel):
         self.parent.update()
 
     def on_softlimit_toggled(self, event):
-        set_dev_value(self.dev, "softLimit_Request", 0, self.index, event.GetInt())
+        self.dev.ctrl_transfer(0x40, self.apogeeinfo["softLimit_Request"], 0, self.index, [event.GetInt()])
         self.parent.update()
 
     def on_phase_toggled(self, event):
-        set_dev_value(self.dev, "phase_Request", 0, self.index, event.GetInt())
+        self.dev.ctrl_transfer(0x40, self.apogeeinfo["phase_Request"], 0, self.index, [event.GetInt()])
         self.parent.update()
 
     def on_phantom_toggled(self, event):
-        set_dev_value(self.dev, "phantom_Request", 0, self.index, event.GetInt())
+        self.dev.ctrl_transfer(0x40, self.apogeeinfo["phantom_Request"], 0, self.index, [event.GetInt()])
         self.parent.update()
 
     def on_input_group_changed(self, event):
-        set_dev_value(self.dev, "inputGroup_Request", 0, self.index, event.GetSelection())
+        self.dev.ctrl_transfer(0x40, self.apogeeinfo["inputGroup_Request"], 0, self.index, [event.GetSelection()])
         self.parent.update()
 
 
@@ -443,28 +421,24 @@ class speakerPanel(wx.Panel): # used for both speaker and headphone
         self.Dim = wx.ToggleButton(self, wx.Window.NewControlId(), label = "Dim")
         self.Mono = wx.ToggleButton(self, wx.Window.NewControlId(), label = "Mono")
 
-        # adding parts to the "box" (vertical boxsizer)
-        lst = [self.Title,
-               None,
-               self.SourceTitle,
-               self.Source,
-               self.Level,
-               self.Mute,
-               self.Dim,
-               self.Mono]
+        box.Add(self.Title, flag=wx.EXPAND)
+        box.AddSpacer(borderValue)
+        box.Add(self.SourceTitle, flag=wx.EXPAND)
+        box.Add(self.Source, flag=wx.EXPAND)
+        box.Add(self.Level, flag=wx.EXPAND)
+        box.Add(self.Mute, flag=wx.EXPAND)
+        box.Add(self.Dim, flag=wx.EXPAND)
+        box.Add(self.Mono, flag=wx.EXPAND)
 
         if self.Speaker == True:
-            self.ConfigTitle =  wx.StaticText(self, label="Configuration", style = wx.ALIGN_CENTRE)
-            self.Config = wx.Choice(self, wx.Window.NewControlId(),choices=apogeeinfo["outputConfigChoice"])
-            lst.append(None)
-            lst.append(self.ConfigTitle)
-            lst.append(self.Config)
+            box.AddSpacer(borderValue)
 
-        for each in lst:
-            if each == None:
-                box.AddSpacer(borderValue)
-            else:
-                box.Add(each, flag=wx.EXPAND)
+            self.ConfigTitle =  wx.StaticText(self, label="Configuration", style = wx.ALIGN_CENTRE)
+            box.Add(self.ConfigTitle, flag=wx.EXPAND)
+
+
+            self.Config = wx.Choice(self, wx.Window.NewControlId(),choices=apogeeinfo["outputConfigChoice"])
+            box.Add(self.Config, flag=wx.EXPAND)
 
         if (debug == False):
             self.Source.Bind(wx.EVT_CHOICE, self.on_output_source_changed)
@@ -491,16 +465,16 @@ class speakerPanel(wx.Panel): # used for both speaker and headphone
             else:
                 self.source = 0
         else:
-            self.level = -(get_dev_value(dev, "outputLevel_Request", 0, self.index))
-            self.mute = get_dev_value(dev, "outputMute_Request", 0, self.index)
-            self.dim =  get_dev_value(dev, "outputDim_Request",  0, self.index)
-            self.mono = get_dev_value(dev , "outputMono_Request", 0, self.index)
+            self.level = -(dev.ctrl_transfer(0xc0, self.apogeeinfo["outputLevel_Request"], 0, self.index, 1)[0])
+            self.mute = dev.ctrl_transfer(0xc0, self.apogeeinfo["outputMute_Request"], 0, self.index, 1)[0]
+            self.dim =  dev.ctrl_transfer(0xc0, self.apogeeinfo["outputDim_Request"],  0, self.index, 1)[0]
+            self.mono = dev.ctrl_transfer(0xc0, self.apogeeinfo["outputMono_Request"], 0, self.index, 1)[0]
 
             if self.Speaker == True:
-                self.source = get_dev_value(dev, "output_Line_Request", 0, self.index)
-                self.config = get_dev_value(dev, "outputConfig_Request", 0, self.index)
+                self.source = dev.ctrl_transfer(0xc0, self.apogeeinfo["output_Line_Request"], 0, self.index, 1)[0]
+                self.config = dev.ctrl_transfer(0xc0, self.apogeeinfo["outputConfig_Request"], 0, self.index, 1)[0]
             else:
-                self.source = get_dev_value(dev, "outputSource_Request", 0, self.apogeeinfo["outputSource_Dest"][self.index])
+                self.source = dev.ctrl_transfer(0xc0, self.apogeeinfo["outputSource_Request"], 0, self.apogeeinfo["outputSource_Dest"][self.index], 1)[0]
 
             
     def update(self):
@@ -517,31 +491,31 @@ class speakerPanel(wx.Panel): # used for both speaker and headphone
         self.Mono.SetValue(self.mono)
         
     def on_output_level_changed(self, event):
-        set_dev_value(self.dev, "outputLevel_Request", 0, self.index, self.apogeeinfo["outputLevel_Max"] - event.GetPosition())
+        self.dev.ctrl_transfer(0x40, self.apogeeinfo["outputLevel_Request"], 0, self.index, [self.apogeeinfo["outputLevel_Max"] - event.GetPosition()])
         self.parent.update()
 
     def on_output_source_changed(self, event):
         if self.Speaker == True:
-            set_dev_value(self.dev, "output_Line_Request", 0, 0, self.apogeeinfo["output_SpSelectIndex"][event.GetSelection()])
+            self.dev.ctrl_transfer(0x40, self.apogeeinfo["output_Line_Request"], 0, 0, [self.apogeeinfo["output_SpSelectIndex"][event.GetSelection()]])
         else:
-            set_dev_value(self.dev, "outputSource_Request", 0, self.apogeeinfo["outputSource_Dest"][self.index], event.GetSelection())
+            self.dev.ctrl_transfer(0x40, self.apogeeinfo["outputSource_Request"], 0, self.apogeeinfo["outputSource_Dest"][self.index], [event.GetSelection()])
 
         self.parent.update()
 
     def on_mute_toggled(self, event):
-        set_dev_value(self.dev, "outputMute_Request", 0, self.index, event.GetInt())
+        self.dev.ctrl_transfer(0x40, self.apogeeinfo["outputMute_Request"], 0, self.index, [event.GetInt()])
         self.parent.update()
 
     def on_dim_toggled(self, event):
-        set_dev_value(self.dev, "outputDim_Request", 0, self.index, event.GetInt())
+        self.dev.ctrl_transfer(0x40, self.apogeeinfo["outputDim_Request"], 0, self.index, [event.GetInt()])
         self.parent.update()
 
     def on_mono_toggled(self, event):
-        set_dev_value(self.dev, "outputMono_Request", 0, self.index, event.GetInt())
+        self.dev.ctrl_transfer(0x40, self.apogeeinfo["outputMono_Request"], 0, self.index, [event.GetInt()])
         self.parent.update()
 
     def on_output_config_changed(self, event):
-        set_dev_value(self.dev, "outputConfig_Request", 0, 0, event.GetSelection())
+        self.dev.ctrl_transfer(0x40, self.apogeeinfo["outputConfig_Request"], 0, 0, [event.GetSelection()])
         self.parent.update()
 
 
@@ -589,9 +563,9 @@ class linePanel(wx.Panel):
             self.source = 0
             self.linelevel = 0
         else:
-            self.source = get_dev_value(dev, "outputSource_Request", 0, self.apogeeinfo["outputSource_Dest"][self.index])
-            self.linelevel =  get_dev_value(dev, "outputLineLevel_Request", 0, self.lineIndex)#  for Line [0, (not used), 4, 2]
-            self.linelevel2 = get_dev_value(dev, "outputLineLevel_Request", 0, self.lineIndex + 1)#  for Line [1, (not used), 5, 3]
+            self.source = dev.ctrl_transfer(0xc0, self.apogeeinfo["outputSource_Request"], 0, self.apogeeinfo["outputSource_Dest"][self.index], 1)[0]
+            self.linelevel =  dev.ctrl_transfer(0xc0, self.apogeeinfo["outputLineLevel_Request"], 0, self.lineIndex,     1)[0] #  for Line [0, (not used), 4, 2]
+            self.linelevel2 = dev.ctrl_transfer(0xc0, self.apogeeinfo["outputLineLevel_Request"], 0, self.lineIndex + 1, 1)[0] #  for Line [1, (not used), 5, 3]
             if (self.linelevel != self.linelevel2):
                 print ("line level of Line " + str(self.lineIndex) + ": " + str(self.linelevel) + " and " + str(self.lineIndex + 1) + ": " + str(self.linelevel2) + " differs!")
 
@@ -601,12 +575,12 @@ class linePanel(wx.Panel):
         self.LineLevel.SetSelection(self.linelevel)
 
     def on_output_source_changed(self, event):
-        set_dev_value(self.dev, "outputSource_Request", 0, self.apogeeinfo["outputSource_Dest"][self.index], event.GetSelection())
+        self.dev.ctrl_transfer(0x40, self.apogeeinfo["outputSource_Request"], 0, self.apogeeinfo["outputSource_Dest"][self.index], [event.GetSelection()])
         self.parent.update()
 
     def on_line_level_changed(self, event):
-        set_dev_value(self.dev, "outputLineLevel_Request", 0, self.lineIndex,     event.GetSelection())
-        set_dev_value(self.dev, "outputLineLevel_Request", 0, self.lineIndex + 1, event.GetSelection())
+        self.dev.ctrl_transfer(0x40, self.apogeeinfo["outputLineLevel_Request"], 0, self.lineIndex,     [event.GetSelection()])
+        self.dev.ctrl_transfer(0x40, self.apogeeinfo["outputLineLevel_Request"], 0, self.lineIndex + 1, [event.GetSelection()])
         self.parent.update()
 
 class outputWindow(wx.Frame):
