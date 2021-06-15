@@ -22,7 +22,7 @@ borderValue = 10
 inputWindowSize = (770,310)
 mixerWindowSize = (1140,570)
 mainWindowSize = (770,390)
-#outputWindowSize = (770,330)
+outputWindowSize = (770,330)
 updateInterval = 0.2 # interval for periodic information update of the device
 
 #
