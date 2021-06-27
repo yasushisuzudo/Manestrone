@@ -4,8 +4,7 @@ Apogee Quartet Control Panel for linux written in python
 Heavily based on take_control of stefanocoding, I have written a python program to control
 Apogee Quartet, an old but excellent USB Audio Interface.
 
-Unfortunately, I could not manage to control internal mixer enough, but for inputs, outputs
-and routing, I am satisfied what I have done.
+As of "o3", mixer works.
 
 If you want to use this program as a non-root user, you will need to add a rules file in /etc/udev/rules.d/
 which contains following rule.
